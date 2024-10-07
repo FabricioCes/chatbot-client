@@ -75,7 +75,7 @@ export default function ChatComponent() {
             className="flex-1 text-black"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Escribe un mensaje..."
+            placeholder="¿Qué deseas saber"
           />
           <Button color='primary' variant='shadow' onClick={handleSendMessage} isLoading={loading} isDisabled={loading}>
             {loading ? '' : "Enviar"}

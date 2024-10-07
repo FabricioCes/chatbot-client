@@ -4,27 +4,27 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 export default function ChatComponent() {
-  const [message, setMessage] = useState(''); // Estado para almacenar el valor del input
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]); // Para manejar el historial del chat
+  const [chatHistory, setChatHistory] = useState([]); 
 
   const handleSendMessage = async () => {
-    if (!message.trim()) return; // Prevenir mensajes vacíos
+    if (!message.trim()) return;
 
     try {
       setLoading(true);
       setChatHistory(prev => [...prev, `Tú: ${message}`]);
-      setMessage(''); // Limpiamos el campo de texto
+      setMessage('');
 
-      const response = await fetch('https://chatbot-api-3xhr.onrender.com/api/message', { // Cambia a la URL de tu API en Render
+      const response = await fetch('https://chatbot-api-3xhr.onrender.com/api/message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }), // Asegúrate de que el cuerpo sea como lo espera tu API
+        body: JSON.stringify({ message }),
       });
 
-      // Verificamos si la respuesta no es JSON
+
       if (!response.ok) {
         const text = await response.text();
         console.error('Respuesta no válida:', text);
@@ -33,7 +33,7 @@ export default function ChatComponent() {
 
       const responseData = await response.json();
 
-      // Asegúrate de que la estructura de responseData sea la que estás esperando
+
       if (responseData && responseData.data && responseData.data.length > 0) {
         const markdownData = responseData.data[0].content[0].text.value;
         setChatHistory(prev => [...prev, `Bot: ${markdownData}`]);

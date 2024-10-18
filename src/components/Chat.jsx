@@ -6,24 +6,23 @@ import remarkGfm from 'remark-gfm';
 export default function ChatComponent() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]); 
+  const [chatHistory, setChatHistory] = useState([]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
 
     try {
       setLoading(true);
-      setChatHistory(prev => [...prev, `Tú: ${message}`]);
+      setChatHistory(prev => [...prev, { sender: 'user', content: message }]); // Guardamos como objeto
       setMessage('');
 
-      const response = await fetch('https://chatbot-api-3xhr.onrender.com/api/message', {
+      const response = await fetch('http://localhost:3000/api/message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ message }),
       });
-
 
       if (!response.ok) {
         const text = await response.text();
@@ -33,35 +32,70 @@ export default function ChatComponent() {
 
       const responseData = await response.json();
 
-
       if (responseData && responseData.data && responseData.data.length > 0) {
-        const markdownData = responseData.data[0].content[0].text.value;
-        setChatHistory(prev => [...prev, `Bot: ${markdownData}`]);
+        responseData.data.forEach((msg) => {
+          msg.content.forEach(async (contentItem) => {
+            if (contentItem.type === 'image_file' && contentItem.image_file) {
+              // Si es una imagen, cargamos el gráfico
+              await handleLoadGraph(contentItem.image_file.file_id);
+            } else if (contentItem.type === 'text' && contentItem.text.value) {
+              // Si es texto, lo agregamos como un mensaje del bot
+              const markdownData = contentItem.text.value;
+              setChatHistory(prev => [...prev, { sender: 'bot', content: markdownData }]);
+            }
+          });
+        });
       } else {
-        setChatHistory(prev => [...prev, 'Bot: No hay respuesta disponible']);
+        setChatHistory(prev => [...prev, { sender: 'bot', content: 'No hay respuesta disponible' }]);
       }
 
       setLoading(false);
     } catch (error) {
       console.error('Error en la petición:', error);
-      setChatHistory(prev => [...prev, 'Bot: Error al procesar la petición']);
+      setChatHistory(prev => [...prev, { sender: 'bot', content: 'Error al procesar la petición' }]);
       setLoading(false);
     }
   };
 
+  const handleLoadGraph = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/graph/${id}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error('Error en la respuesta al cargar el gráfico');
+      }
+
+      const graphData = await response.json();
+      setChatHistory(prev => [
+        ...prev, 
+        { sender: 'bot', type: 'graph', content: graphData.content }
+      ]);
+
+    } catch (error) {
+      console.error('Error en la petición:', error);
+      setChatHistory(prev => [...prev, { sender: 'bot', content: 'Error al cargar el gráfico' }]);
+    }
+  }
+
   return (
-    <div className="flex flex-col h-[750px] sm:h-[800px] md:h-[700] xl:h-[900px] items-center justify-center p-5 overflow-y-clip">
+    <div className="flex flex-col h-[750px] sm:h-[800px] md:h-[700px] xl:h-[900px] items-center justify-center p-5 overflow-y-clip">
       {/* Chat Container */}
       <div className="flex-1 p-4 w-full max-w-4xl mx-auto bg-gray-100 shadow-md rounded-lg overflow-auto">
         <div className="max-w-2xl mx-auto">
           {chatHistory.map((message, index) => (
-            <div key={index} className={`p-3 my-2 ${message.startsWith('Tú:') ? 'text-right' : 'text-left'}`}>
+            <div key={index} className={`p-3 my-2 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
               <div
-                className={`inline-block px-4 py-2 rounded-lg ${message.startsWith('Tú:') ? 'bg-blue-500 text-white' : 'bg-gray-300 text-black'}`}
+                className={`inline-block px-4 py-2 rounded-lg ${message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-black'}`}
               >
-                <ReactMarkdown remarkPlugins={[remarkGfm]} className="overflow-y-visible">
-                  {message.replace('Tú:', '').replace('Bot:', '')}
-                </ReactMarkdown>
+                {message.type === 'graph' ? (
+                  <img src={`data:image/jpeg;base64,${message.content}`} alt="Grafico" />
+                ) : (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} className="overflow-y-visible">
+                    {message.content}
+                  </ReactMarkdown>
+                )}
               </div>
             </div>
           ))}
@@ -75,7 +109,7 @@ export default function ChatComponent() {
             className="flex-1 text-black"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="¿Qué deseas saber"
+            placeholder="¿Qué deseas saber?"
           />
           <Button color='primary' variant='shadow' onClick={handleSendMessage} isLoading={loading} isDisabled={loading}>
             {loading ? '' : "Enviar"}

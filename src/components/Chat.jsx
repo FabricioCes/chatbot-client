@@ -16,7 +16,7 @@ export default function ChatComponent() {
       setChatHistory(prev => [...prev, { sender: 'user', content: message }]); // Guardamos como objeto
       setMessage('');
 
-      const response = await fetch('http://localhost:3000/api/message', {
+      const response = await fetch('https://chatbot-api-3xhr.onrender.com/api/message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

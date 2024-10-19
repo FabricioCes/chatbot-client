@@ -59,7 +59,7 @@ export default function ChatComponent() {
 
   const handleLoadGraph = async (id) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/graph/${id}`, {
+      const response = await fetch(`https://chatbot-api-3xhr.onrender.com/api/graph/${id}`, {
         method: 'GET',
       });
 
